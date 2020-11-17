@@ -16,7 +16,7 @@ ydim = math.ceil(neurons / xdim)
 sigma = 1
 learning_rate = 0.25
 
-# Draw Input
+# Draw Inputs
 
 plt.subplot(131)
 plt.imshow(abs(colors_2D),interpolation='none')
