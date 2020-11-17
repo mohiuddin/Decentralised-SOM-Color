@@ -1,5 +1,3 @@
-
-
 class SomAgent:
     def __init__(self, agent_id, som):
         self.ID = agent_id
@@ -14,3 +12,10 @@ class SomAgent:
     def printComm(self):
         print("Communication history for Agent ID:", self.ID)
         print(self.commHistory)
+    def inputTracker(self,input,idx):
+        self.initInput = input
+        self.initID = idx
+        self.input = input
+
+    def getInput(self):
+        return self.input

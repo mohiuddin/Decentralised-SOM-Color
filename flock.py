@@ -49,10 +49,10 @@ for i in range(n_agents):
 
 # Creating Randomized Input Subsets
 colInputs = np.zeros((4, 400, 3))
-
 for i in range(n_agents):
     idx = np.random.choice(colors.shape[0], 400, replace=True)   #Generating 400 random indexe with replacement
     colInputs[i] = colors[idx,:]
+    agent.inputTracker(colInputs, idx)
 
 # The Main Loop is not done
 
