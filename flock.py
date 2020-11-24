@@ -3,6 +3,7 @@ from minisom import MiniSom
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+import random
 
 
 ################# Class Def ###########################################################################
@@ -11,7 +12,7 @@ class SomAgent:
         self.ID = agent_id
         self.som = som
         self.commHistory = []
-        self.commRatio = 0.1
+        self.commRatio = 0.1   #Now fixed, can be initialised to a random value if decided
         print("Agent", self.ID, "created")
 
     def inputInit(self,idx, data):
@@ -24,13 +25,27 @@ class SomAgent:
         """They will pass with another only a random percentage of the data they have
         The textual history will also be updated"""
 
+        #Check length
+        inplength_s = len(self.inpDic)
+        items_s  = int(inplength_s*self.commRatio)
+        tosend_s = dict(random.sample(self.inpDic.items(), items_s))
 
+        inplength_o = len(other.inpDic)
+        items_o = int(inplength_o * other.commRatio)
+        tosend_o = dict(random.sample(other.inpDic.items(), items_o))
 
+        #Update self's dictionary
+        self.inpDic.update(tosend_o)
+        other.inpDic.update(tosend_s)
+        #Update other's dictionary
 
 
         # Updating the textual history of the communication
-        updated = "With Agent " + str(other.ID) + " at " + tstamp
+        updated = "Received " + str(items_o) + " items from Agent" + str(other.ID) + " at " + tstamp
         self.commHistory.append(updated)
+        updated = "Received " + str(items_s) + " items from Agent " + str(self.ID) + " at " + tstamp
+        other.commHistory.append(updated)
+
 
     def printComm(self):
         print("Communication history for Agent:", self.ID)
@@ -58,9 +73,17 @@ def convto1d (colors):
     cols = colors.reshape(sizex*sizey,3)
     return cols
 
-def convForImshow(colors, idx):
+def convtoPlot(a):
     """Draw SAMPLES size grid with non-existing IDs as gray"""
-    pass
+    all_gray = np.ones((1600, 3))
+    all_gray = all_gray*0.5
+    keys  = a.getInputIdx()
+    values = a.getInput()
+    all_gray[keys] =  values
+    mymap = all_gray.reshape(40, 40, 3)
+
+    return mymap
+
 
 #########################################################################################################
 # Generating Random Color Data
@@ -102,33 +125,34 @@ for i in range(N_AGENTS):
 # The Main Loop
 
 meetCounter = [0, 0, 0, 0]           # Counting the Meetings  (1,2) (2,3) (3,4) (4,1)
-certainlyMeet = True                 # True if agents are guaranteed to meet at each iteration
+certainlyMeet = False                 # True if agents are guaranteed to meet at each iteration
 inputPortion = 0.1                   # This is the portion of input that is getting communicated at each chance
-while (sum(meetCounter) < 4):
+while (sum(meetCounter) < 8):
     #Draw Plots
     plotCounter = 1
     for i in range(N_AGENTS):
 
         plt.subplot(4, 3, plotCounter)
         agentInput = agent[i].getInput()
-        #agentInput2d = convto2d(agentInput)
-        plt.imshow((agentInput), interpolation='none')
+        agentInputPlot = convtoPlot(agent[i])
+
+        plt.imshow((agentInputPlot), interpolation='none')
         plt.title('Input')
         plotCounter = plotCounter+1
 
         plt.subplot(4, 3, plotCounter)
         plt.imshow(abs(agent[i].som.get_weights()), interpolation='none')
-        plt.title("Initial MAP")
+        plt.title("Starting MAP")
         plotCounter = plotCounter + 1
 
         # Training the SOM
-        agent[i].som.train_batch(agentInput, SAMPLES, verbose=True)
+        agent[i].som.train_batch(agentInput, len(agentInput), verbose=True)
 
         # After Training
         plt.subplot(4, 3, plotCounter)
         plt.imshow(abs(agent[i].som.get_weights()), interpolation='none')
         qE1 = agent[i].som.quantization_error(colors)
-        plt.title("Final," + " QE = " + str(round(qE1, 4)))
+        plt.title("Final, " + " QE = " + str(round(qE1, 4)))
         plotCounter = plotCounter + 1
 
     plt.subplots_adjust(hspace=0.3)
@@ -160,9 +184,10 @@ while (sum(meetCounter) < 4):
 
 
 
-#agent[0].printComm()
-#agent[1].printComm()
-
+agent[0].printComm()
+agent[1].printComm()
+agent[2].printComm()
+agent[3].printComm()
 
 
 
