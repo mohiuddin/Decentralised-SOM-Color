@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import random
+import pandas as pd
+import scipy.stats as st
 
 
 ################# Class Def ###########################################################################
@@ -161,14 +163,12 @@ INITIAL_INPUT = 100
 ITERATION_INPUT = 100
 
 N_AGENTS = 4
-MEETING_LIMIT = 4               #This is the total meet count limit. Invividual counts are random
+MEETING_LIMIT = 12               #This is the total meet count limit. Invividual counts are random
 PLOTTING = False
 
 meetCounter = [0]*N_AGENTS        # Counting the Meetings  (1,2) (2,3) (3,4) (4,1)
 certainlyMeet = False                  # True if agents are guaranteed to meet at each iteration
 inputPortion = 0.1                     # The percentage of existing input that is shared between agents when in contact
-
-
 
 # SOM parameters
 neurons = 5 * math.sqrt(SAMPLES)       # Using the heuristics: N = 5*sqrt(M)
@@ -231,24 +231,24 @@ while (whCounter < MEETING_LIMIT):
         else:
             print("No new input for Agent", i)
 
-    #Communicate
+    #Communicate in a Star Topology
 
     chancetoMeet = np.random.rand(4)
-    if chancetoMeet[0] >= 0.5 or certainlyMeet:
-        print("Agent 1 and 2 are communicating")
-        agent[0].updateComm(agent[1],time.ctime())
-        meetCounter[0] += 1
+
     if chancetoMeet[1] >= 0.5 or certainlyMeet:
-        print("Agent 2 and 3 are communicating")
-        agent[1].updateComm(agent[2], time.ctime())
+        print("Agent 1 is communicating")
+        agent[1].updateComm(agent[0], time.ctime())
+        meetCounter[0] += 1
         meetCounter[1] += 1
     if chancetoMeet[2] >= 0.5 or certainlyMeet:
-        print("Agent 3 and 4 are communicating")
-        agent[2].updateComm(agent[3], time.ctime())
+        print("Agent 2 is communicating")
+        agent[2].updateComm(agent[0], time.ctime())
+        meetCounter[0] += 1
         meetCounter[2] += 1
     if chancetoMeet[3] >= 0.5 or certainlyMeet:
-        print("Agent 4 and 1 are communicating")
+        print("Agent 1 is communicating")
         agent[3].updateComm(agent[0], time.ctime())
+        meetCounter[0] += 1
         meetCounter[3] += 1
 
     # Getting more values from Environment
@@ -283,7 +283,6 @@ colmean = np.transpose(colmean)
 print("Mean Values")
 print(colmean)
 
-
 ###
 vals = np.zeros((N_AGENTS, 1))
 commTimes = np.zeros((N_AGENTS,1))
@@ -295,10 +294,6 @@ print(vals)
 print(commTimes)
 
 ##### Graphs ################
-
-
-
-
 
 plt.subplot(2, 4, 5)
 plt.imshow(abs(agent[0].som.get_weights()), interpolation='none')

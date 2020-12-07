@@ -168,8 +168,6 @@ meetCounter = [0]*N_AGENTS        # Counting the Meetings  (1,2) (2,3) (3,4) (4,
 certainlyMeet = False                  # True if agents are guaranteed to meet at each iteration
 inputPortion = 0.1                     # The percentage of existing input that is shared between agents when in contact
 
-
-
 # SOM parameters
 neurons = 5 * math.sqrt(SAMPLES)       # Using the heuristics: N = 5*sqrt(M)
 xdim = round(math.sqrt(neurons))
@@ -231,24 +229,32 @@ while (whCounter < MEETING_LIMIT):
         else:
             print("No new input for Agent", i)
 
-    #Communicate
+    #Communicate in a Mesh setting, with random Chance
 
     chancetoMeet = np.random.rand(4)
     if chancetoMeet[0] >= 0.5 or certainlyMeet:
-        print("Agent 1 and 2 are communicating")
+        print("Agent 1 is communicating with others")
         agent[0].updateComm(agent[1],time.ctime())
+        agent[0].updateComm(agent[2], time.ctime())
+        agent[0].updateComm(agent[3], time.ctime())
         meetCounter[0] += 1
     if chancetoMeet[1] >= 0.5 or certainlyMeet:
-        print("Agent 2 and 3 are communicating")
+        print("Agent 2 is communicating with others")
+        agent[1].updateComm(agent[0], time.ctime())
         agent[1].updateComm(agent[2], time.ctime())
+        agent[1].updateComm(agent[3], time.ctime())
         meetCounter[1] += 1
     if chancetoMeet[2] >= 0.5 or certainlyMeet:
-        print("Agent 3 and 4 are communicating")
+        print("Agent 3 is communicating with others")
+        agent[2].updateComm(agent[0], time.ctime())
+        agent[2].updateComm(agent[1], time.ctime())
         agent[2].updateComm(agent[3], time.ctime())
         meetCounter[2] += 1
     if chancetoMeet[3] >= 0.5 or certainlyMeet:
-        print("Agent 4 and 1 are communicating")
+        print("Agent 4 is communicating with others")
         agent[3].updateComm(agent[0], time.ctime())
+        agent[3].updateComm(agent[1], time.ctime())
+        agent[3].updateComm(agent[2], time.ctime())
         meetCounter[3] += 1
 
     # Getting more values from Environment
@@ -274,8 +280,6 @@ for i in range(0, testLength):
         qe = agent[j].som.quantization_error(testSet)
         qval[i,j+1] = qe
 
-
-
 print("\n \n ** ================ Results =================**")
 print(qval)
 colmean = qval.mean(axis=0)
@@ -295,10 +299,6 @@ print(vals)
 print(commTimes)
 
 ##### Graphs ################
-
-
-
-
 
 plt.subplot(2, 4, 5)
 plt.imshow(abs(agent[0].som.get_weights()), interpolation='none')
