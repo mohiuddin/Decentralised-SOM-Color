@@ -161,7 +161,7 @@ INITIAL_INPUT = 100
 ITERATION_INPUT = 100
 
 N_AGENTS = 4
-MEETING_LIMIT = 4               #This is the total meet count limit. Invividual counts are random
+MEETING_LIMIT = 8               #This is the total meet count limit. Invividual counts are random
 PLOTTING = False
 
 meetCounter = [0]*N_AGENTS        # Counting the Meetings  (1,2) (2,3) (3,4) (4,1)
@@ -290,23 +290,23 @@ commTimes = np.zeros((N_AGENTS,1))
 for i in range(N_AGENTS):
     vals[i] = len(agent[i].repository)
     commTimes[i] =  len(agent[i].commHistory)
-
 print(vals)
 print(commTimes)
 
+#Saving Numpy Arrays
+
+#np.savez('ring8.npz', name1=qval, name2 = vals)
+
 ##### Graphs ################
 
-
-
-
-
-plt.subplot(2, 4, 5)
-plt.imshow(abs(agent[0].som.get_weights()), interpolation='none')
-plt.subplot(2, 4, 6)
-plt.imshow(abs(agent[1].som.get_weights()), interpolation='none')
-plt.subplot(2, 4, 7)
-plt.imshow(abs(agent[2].som.get_weights()), interpolation='none')
-plt.subplot(2, 4, 8)
-plt.imshow(abs(agent[3].som.get_weights()), interpolation='none')
-plt.show()
+#
+# plt.subplot(2, 4, 5)
+# plt.imshow(abs(agent[0].som.get_weights()), interpolation='none')
+# plt.subplot(2, 4, 6)
+# plt.imshow(abs(agent[1].som.get_weights()), interpolation='none')
+# plt.subplot(2, 4, 7)
+# plt.imshow(abs(agent[2].som.get_weights()), interpolation='none')
+# plt.subplot(2, 4, 8)
+# plt.imshow(abs(agent[3].som.get_weights()), interpolation='none')
+# plt.show()
 

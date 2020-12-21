@@ -4,8 +4,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import random
-import pandas as pd
-import scipy.stats as st
+
+'''
+This script generates data files for individual scenarios.
+linedata and testdata have to be changed accordingly to fetch the respective scenario
+Testing is done by taking samples from another scenario. By default, trainign is done on 
+Scenario 1 and testing is done on scenario 2
+
+Saves the results as npz file with the respective name. Gengraph files are needed to process
+the data and generate plots
+'''
 
 
 ################# Class Def ###########################################################################
@@ -63,10 +71,10 @@ class SomAgent:
         other.commHistory.append(updated)
         print(updated)
 
-    def updateEnv (self, colors, ITERATION_INPUT):
+    def updateEnv (self, linedata, ITERATION_INPUT):
         items = int(random.uniform(0.8, 1)*ITERATION_INPUT)
-        idx = np.random.choice(colors.shape[0], items, replace=False)
-        data = colors[idx, :]
+        idx = np.random.choice(linedata.shape[0], items, replace=False)
+        data = linedata[idx, :]
         inpDicEnv = dict(zip(idx, data.tolist() ))
         self.inpList.append(inpDicEnv)   # Appending to the list of dictionary
         self.inpDic.update(inpDicEnv)    # Updating the whole dictionary, may not be useful
@@ -155,35 +163,79 @@ def convtoPlot(a):
     all_gray[keys] =  values
     mymap = all_gray.reshape(40, 40, 3)
     return mymap
-###############################MAGIC Nummbers     ######################################
-# Number of samples and agetns etc.
-SAMPLES = 1600
-colors = np.random.rand(SAMPLES,3)
-INITIAL_INPUT = 100
-ITERATION_INPUT = 100
 
-N_AGENTS = 4
-MEETING_LIMIT = 8               #This is the total meet count limit. Invividual counts are random
-PLOTTING = False
-
-meetCounter = [0]*N_AGENTS        # Counting the Meetings  (1,2) (2,3) (3,4) (4,1)
-certainlyMeet = False                  # True if agents are guaranteed to meet at each iteration
-inputPortion = 0.1                     # The percentage of existing input that is shared between agents when in contact
-
-# SOM parameters
-neurons = 5 * math.sqrt(SAMPLES)       # Using the heuristics: N = 5*sqrt(M)
-xdim = round(math.sqrt(neurons))
-ydim = round(neurons / xdim)
-sigma = 1
-lrate = 0.25
-data_dim = 3                            #Data dimension. RGB is 3-dimensional
-###########################   End Magic Numbers    ##########################################################
 def fixed_decay(learning_rate, t, max_iter):
     """This is a fixed decay custom fuction
     added by Rafi
     """
     return learning_rate
 
+def main_loop(MEETING_LIMIT, certainlyMeet, agent):
+    N_AGENTS = len(agent)
+    whCounter = 0
+    while (whCounter < MEETING_LIMIT):
+        print("** =========================================== **")
+        for i in range(N_AGENTS):
+            agentInput = agent[i].getLastInputs()  # Getting unique values from all the recently acquired inputs
+            # print(len(agentInput))
+            agentInputToTrain = agent[i].samplesToTrain(
+                agentInput)  # Getting the samples that have not been seen by the SOM
+            # print(len(agentInputToTrain))
+            l = len(agentInputToTrain)
+            if (l > 0):
+                print("Agent", i + 1, "Training SOM with", l, "samples")
+                agent[i].som.train_batch(agentInputToTrain, len(agentInputToTrain), verbose=False)
+            else:
+                print("No new input for Agent", i)
+
+        # Communicate
+        chancetoMeet = np.random.rand(4)
+        if chancetoMeet[0] >= 0.5 or certainlyMeet:
+            print("Agent 1 and 2 are communicating")
+            agent[0].updateComm(agent[1], time.ctime())
+        if chancetoMeet[1] >= 0.5 or certainlyMeet:
+            print("Agent 2 and 3 are communicating")
+            agent[1].updateComm(agent[2], time.ctime())
+        if chancetoMeet[2] >= 0.5 or certainlyMeet:
+            print("Agent 3 and 4 are communicating")
+            agent[2].updateComm(agent[3], time.ctime())
+        if chancetoMeet[3] >= 0.5 or certainlyMeet:
+            print("Agent 4 and 1 are communicating")
+            agent[3].updateComm(agent[0], time.ctime())
+
+        # Getting more values from Environment
+        for i in range(N_AGENTS):
+            agent[i].updateEnv(linedata, ITERATION_INPUT)
+        whCounter += 1
+
+def load_data(path):
+    return np.asarray(np.loadtxt(path, delimiter=','))
+
+
+'''Data Prep'''
+linedata = load_data("D:\\spike boid data\\1\\firefly.txt")
+linedata = linedata[:,4:14]
+print(len(linedata))
+SAMPLES = len(linedata)
+
+''' MAGIC Nummbers     
+'''
+INITIAL_INPUT = 1000
+ITERATION_INPUT = 1000
+
+N_AGENTS = 4
+MEETING_LIMIT = 12                      #This is the total meet count limit. Invividual counts are random
+PLOTTING = False
+certainlyMeet = False                   # True if agents are guaranteed to meet at each iteration
+
+# SOM parameters
+neurons = 5 * math.sqrt(SAMPLES)        # Using the heuristics: N = 5*sqrt(M)
+xdim = round(math.sqrt(neurons))
+ydim = round(neurons / xdim)
+sigma = 1
+lrate = 0.25
+data_dim = 10                            #Data dimension. RGB is 3-dimensional
+###########################   End Magic Numbers    ##########################################################
 # Creating agents in a loop, each with a SOM object of its own
 soms = []
 agent = []
@@ -193,88 +245,42 @@ for i in range(N_AGENTS):
     a = SomAgent(i+1,s)
     agent.append(a)
 
-# Creating Randomized Input Subsets for Initialisation of the scheme
+# Input Preparation
 colInput = np.zeros((INITIAL_INPUT, data_dim))
 for i in range(N_AGENTS):
-    idx = np.random.choice(colors.shape[0], INITIAL_INPUT, replace=False)   #Generating a certain no. of inputs for initial input
-    colInput = colors[idx,:]
+    idx = np.random.choice(linedata.shape[0], INITIAL_INPUT, replace=False)   #Generating a certain no. of inputs for initial input
+    colInput = linedata[idx,:]
     agent[i].inputInit(idx, colInput)   # This is the initial input
 
-#Initial Plot
+'''Calling Agents to train'''
+main_loop(MEETING_LIMIT, certainlyMeet, agent)
 
-ax = plt.subplot()
-plt.subplot(2, 4, 1)
-plt.imshow(abs(agent[0].som.get_weights()), interpolation='none')
-plt.subplot(2, 4, 2)
-plt.imshow(abs(agent[1].som.get_weights()), interpolation='none')
-plt.subplot(2, 4, 3)
-plt.imshow(abs(agent[2].som.get_weights()), interpolation='none')
-plt.subplot(2, 4, 4)
-plt.imshow(abs(agent[3].som.get_weights()), interpolation='none')
+'''Centralised SOM Creation and Training
+'''
 
-# The Main Loop
-
-whCounter = 0
-while (whCounter < MEETING_LIMIT):
-
-    print("** =========================================== **")
-
-    for i in range(N_AGENTS):
-        agentInput = agent[i].getLastInputs()                      #Getting unique values from all the recently acquired inputs
-        #print(len(agentInput))
-        agentInputToTrain = agent[i].samplesToTrain(agentInput)    #Getting the samples that have not been seen by the SOM
-        #print(len(agentInputToTrain))
-        l = len(agentInputToTrain)
-        if (l > 0):
-            print("Agent",i+1,"Training SOM with", l, "samples")
-            agent[i].som.train_batch(agentInputToTrain, len(agentInputToTrain), verbose=False)
-        else:
-            print("No new input for Agent", i)
-
-    #Communicate in a Star Topology
-
-    chancetoMeet = np.random.rand(4)
-
-    if chancetoMeet[1] >= 0.5 or certainlyMeet:
-        print("Agent 1 is communicating")
-        agent[1].updateComm(agent[0], time.ctime())
-        meetCounter[0] += 1
-        meetCounter[1] += 1
-    if chancetoMeet[2] >= 0.5 or certainlyMeet:
-        print("Agent 2 is communicating")
-        agent[2].updateComm(agent[0], time.ctime())
-        meetCounter[0] += 1
-        meetCounter[2] += 1
-    if chancetoMeet[3] >= 0.5 or certainlyMeet:
-        print("Agent 1 is communicating")
-        agent[3].updateComm(agent[0], time.ctime())
-        meetCounter[0] += 1
-        meetCounter[3] += 1
-
-    # Getting more values from Environment
-    for i in range(N_AGENTS):
-        agent[i].updateEnv(colors, ITERATION_INPUT)
-    whCounter += 1
-
-#Centralised SOM
+print("Training Central")
 csom = MiniSom(xdim, ydim, data_dim, sigma=sigma, learning_rate=lrate, decay_function=fixed_decay)
-csom.train_batch(colors, len(colors), verbose=False)
+csom.train_batch(linedata, len(linedata), verbose=False)
 
 
 
-#Generate Test Set
+'''Generate Test Set and Print Results
+'''
+lineTest = load_data("D:\\spike boid data\\2\\firefly.txt")
+lineTest = lineTest[:,4:14]
+
+print("Now testing")
 testLength = 10
-testSamples = 200
+testSamples = 20000
 qval = np.zeros((testLength, N_AGENTS+1))
 for i in range(0, testLength):
-    testSet = np.random.rand(testSamples, 3)
+    idx = np.random.choice(linedata.shape[0], testSamples,replace=True)  # Generating a certain no. of inputs for initial input
+    testSet = lineTest[idx, :]
     qec = csom.quantization_error(testSet)
     qval[i, 0] = qec
     for j in range(N_AGENTS):
         qe = agent[j].som.quantization_error(testSet)
         qval[i,j+1] = qe
-
-
 
 print("\n \n ** ================ Results =================**")
 print(qval)
@@ -282,28 +288,16 @@ colmean = qval.mean(axis=0)
 colmean = np.transpose(colmean)
 print("Mean Values")
 print(colmean)
-
 ###
 vals = np.zeros((N_AGENTS, 1))
 commTimes = np.zeros((N_AGENTS,1))
 for i in range(N_AGENTS):
     vals[i] = len(agent[i].repository)
     commTimes[i] =  len(agent[i].commHistory)
+#print(vals)
+#print(commTimes)
 
-print(vals)
-print(commTimes)
+#Saving Numpy Arrays
+np.savez('firefly.npz', name1=qval, name2 = vals)
 
-#np.savez('star8.npz', name1=qval, name2 = vals)
-
-##### Graphs ################
-
-plt.subplot(2, 4, 5)
-plt.imshow(abs(agent[0].som.get_weights()), interpolation='none')
-plt.subplot(2, 4, 6)
-plt.imshow(abs(agent[1].som.get_weights()), interpolation='none')
-plt.subplot(2, 4, 7)
-plt.imshow(abs(agent[2].som.get_weights()), interpolation='none')
-plt.subplot(2, 4, 8)
-plt.imshow(abs(agent[3].som.get_weights()), interpolation='none')
-plt.show()
 

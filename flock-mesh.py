@@ -161,7 +161,7 @@ INITIAL_INPUT = 100
 ITERATION_INPUT = 100
 
 N_AGENTS = 4
-MEETING_LIMIT = 4               #This is the total meet count limit. Invividual counts are random
+MEETING_LIMIT = 8               #This is the total meet count limit. Invividual counts are random
 PLOTTING = False
 
 meetCounter = [0]*N_AGENTS        # Counting the Meetings  (1,2) (2,3) (3,4) (4,1)
@@ -297,6 +297,9 @@ for i in range(N_AGENTS):
 
 print(vals)
 print(commTimes)
+
+#Saving Values
+#np.savez('mesh8.npz', name1=qval, name2 = vals)
 
 ##### Graphs ################
 

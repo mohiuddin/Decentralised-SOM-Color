@@ -2,13 +2,10 @@ import math
 from minisom import MiniSom
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 import time
 import random
-import pandas as pd
-import scipy.stats as st
 
-
-################# Class Def ###########################################################################
 class SomAgent:
     def __init__(self, agent_id, som):
         self.ID = agent_id
@@ -63,10 +60,10 @@ class SomAgent:
         other.commHistory.append(updated)
         print(updated)
 
-    def updateEnv (self, colors, ITERATION_INPUT):
+    def updateEnv (self, linedata, ITERATION_INPUT):
         items = int(random.uniform(0.8, 1)*ITERATION_INPUT)
-        idx = np.random.choice(colors.shape[0], items, replace=False)
-        data = colors[idx, :]
+        idx = np.random.choice(linedata.shape[0], items, replace=False)
+        data = linedata[idx, :]
         inpDicEnv = dict(zip(idx, data.tolist() ))
         self.inpList.append(inpDicEnv)   # Appending to the list of dictionary
         self.inpDic.update(inpDicEnv)    # Updating the whole dictionary, may not be useful
@@ -155,155 +152,152 @@ def convtoPlot(a):
     all_gray[keys] =  values
     mymap = all_gray.reshape(40, 40, 3)
     return mymap
-###############################MAGIC Nummbers     ######################################
-# Number of samples and agetns etc.
-SAMPLES = 1600
-colors = np.random.rand(SAMPLES,3)
-INITIAL_INPUT = 100
-ITERATION_INPUT = 100
 
-N_AGENTS = 4
-MEETING_LIMIT = 8               #This is the total meet count limit. Invividual counts are random
-PLOTTING = False
-
-meetCounter = [0]*N_AGENTS        # Counting the Meetings  (1,2) (2,3) (3,4) (4,1)
-certainlyMeet = False                  # True if agents are guaranteed to meet at each iteration
-inputPortion = 0.1                     # The percentage of existing input that is shared between agents when in contact
-
-# SOM parameters
-neurons = 5 * math.sqrt(SAMPLES)       # Using the heuristics: N = 5*sqrt(M)
-xdim = round(math.sqrt(neurons))
-ydim = round(neurons / xdim)
-sigma = 1
-lrate = 0.25
-data_dim = 3                            #Data dimension. RGB is 3-dimensional
-###########################   End Magic Numbers    ##########################################################
 def fixed_decay(learning_rate, t, max_iter):
     """This is a fixed decay custom fuction
     added by Rafi
     """
     return learning_rate
 
-# Creating agents in a loop, each with a SOM object of its own
-soms = []
-agent = []
-for i in range(N_AGENTS):
-    s = MiniSom(xdim, ydim, data_dim, sigma = sigma, learning_rate=lrate, decay_function = fixed_decay)
-    soms.append(s)
-    a = SomAgent(i+1,s)
-    agent.append(a)
+def main_loop(MEETING_LIMIT, certainlyMeet, agent, data, ITERATION_INPUT):
+    N_AGENTS = len(agent)
+    whCounter = 0
+    while (whCounter < MEETING_LIMIT):
+        print("** =========================================== **")
+        for i in range(N_AGENTS):
+            agentInput = agent[i].getLastInputs()  # Getting unique values from all the recently acquired inputs
+            # print(len(agentInput))
+            agentInputToTrain = agent[i].samplesToTrain(
+                agentInput)  # Getting the samples that have not been seen by the SOM
+            # print(len(agentInputToTrain))
+            l = len(agentInputToTrain)
+            if (l > 0):
+                print("Agent", i + 1, "Training SOM with", l, "samples")
+                agent[i].som.train_batch(agentInputToTrain, len(agentInputToTrain), verbose=False)
+            else:
+                print("No new input for Agent", i)
 
-# Creating Randomized Input Subsets for Initialisation of the scheme
-colInput = np.zeros((INITIAL_INPUT, data_dim))
-for i in range(N_AGENTS):
-    idx = np.random.choice(colors.shape[0], INITIAL_INPUT, replace=False)   #Generating a certain no. of inputs for initial input
-    colInput = colors[idx,:]
-    agent[i].inputInit(idx, colInput)   # This is the initial input
+        # Communicate
+        chancetoMeet = np.random.rand(4)
+        if chancetoMeet[0] >= 0.5 or certainlyMeet:
+            print("Agent 1 and 2 are communicating")
+            agent[0].updateComm(agent[1], time.ctime())
+        if chancetoMeet[1] >= 0.5 or certainlyMeet:
+            print("Agent 2 and 3 are communicating")
+            agent[1].updateComm(agent[2], time.ctime())
+        if chancetoMeet[2] >= 0.5 or certainlyMeet:
+            print("Agent 3 and 4 are communicating")
+            agent[2].updateComm(agent[3], time.ctime())
+        if chancetoMeet[3] >= 0.5 or certainlyMeet:
+            print("Agent 4 and 1 are communicating")
+            agent[3].updateComm(agent[0], time.ctime())
 
-#Initial Plot
+        # Getting more values from Environment
+        for i in range(N_AGENTS):
+            agent[i].updateEnv(data, ITERATION_INPUT)
+        whCounter += 1
 
-ax = plt.subplot()
-plt.subplot(2, 4, 1)
-plt.imshow(abs(agent[0].som.get_weights()), interpolation='none')
-plt.subplot(2, 4, 2)
-plt.imshow(abs(agent[1].som.get_weights()), interpolation='none')
-plt.subplot(2, 4, 3)
-plt.imshow(abs(agent[2].som.get_weights()), interpolation='none')
-plt.subplot(2, 4, 4)
-plt.imshow(abs(agent[3].som.get_weights()), interpolation='none')
 
-# The Main Loop
+def load_data(path):
+    return np.asarray(np.loadtxt(path, delimiter=','))
 
-whCounter = 0
-while (whCounter < MEETING_LIMIT):
+'''
+Comment or uncommetn either of these sets to set up either structured or random set of files
+'''
 
-    print("** =========================================== **")
+files = ['initial', 'lines', 'spermatazoa', 'old man river', 'ink in water', 'gravity wells', 'firefly', 'random', 'brownian']
+fileNames = ['Flocking', 'Lines', 'Spermatozoa', 'Old Man', 'Ink', 'Gravity', 'Firefly', 'Busy Bees', 'Random 8']
 
+#files = ['random1', 'random2', 'random3', 'random4', 'random5', 'random6', 'random7']
+#fileNames = ['Random 1', 'Random 2', 'Random 3', 'Random 4', 'Random 5', 'Random 6', 'Random 7']
+
+INITIAL_INPUT = 1000
+ITERATION_INPUT = 1000
+N_AGENTS = 4
+MEETING_LIMIT = 12  # This is the total meet count limit. Invividual counts are random
+PLOTTING = False
+certainlyMeet = False  # True if agents are guaranteed to meet at each iteration
+
+for k in range(4,5):
+    fname = "D:\\spike boid data\\1\\"+ files[k]+".txt"
+    print("Now reading "+ files[k])
+
+    mydata = load_data(fname)
+    mydata = mydata[:,4:14]
+    SAMPLES = len(mydata)
+
+
+    # SOM parameters
+    neurons = 5 * math.sqrt(SAMPLES)  # Using the heuristics: N = 5*sqrt(M)
+    xdim = round(math.sqrt(neurons))
+    ydim = round(neurons / xdim)
+    sigma = 1
+    lrate = 0.25
+    data_dim = 10  # Data dimension
+    ###########################   End Magic Numbers    ##########################################################
+
+    # Creating agents in a loop, each with a SOM object of its own
+    soms = []
+    agent = []
     for i in range(N_AGENTS):
-        agentInput = agent[i].getLastInputs()                      #Getting unique values from all the recently acquired inputs
-        #print(len(agentInput))
-        agentInputToTrain = agent[i].samplesToTrain(agentInput)    #Getting the samples that have not been seen by the SOM
-        #print(len(agentInputToTrain))
-        l = len(agentInputToTrain)
-        if (l > 0):
-            print("Agent",i+1,"Training SOM with", l, "samples")
-            agent[i].som.train_batch(agentInputToTrain, len(agentInputToTrain), verbose=False)
-        else:
-            print("No new input for Agent", i)
+        s = MiniSom(xdim, ydim, data_dim, sigma=sigma, learning_rate=lrate, decay_function=fixed_decay)
+        soms.append(s)
+        a = SomAgent(i + 1, s)
+        agent.append(a)
 
-    #Communicate in a Star Topology
-
-    chancetoMeet = np.random.rand(4)
-
-    if chancetoMeet[1] >= 0.5 or certainlyMeet:
-        print("Agent 1 is communicating")
-        agent[1].updateComm(agent[0], time.ctime())
-        meetCounter[0] += 1
-        meetCounter[1] += 1
-    if chancetoMeet[2] >= 0.5 or certainlyMeet:
-        print("Agent 2 is communicating")
-        agent[2].updateComm(agent[0], time.ctime())
-        meetCounter[0] += 1
-        meetCounter[2] += 1
-    if chancetoMeet[3] >= 0.5 or certainlyMeet:
-        print("Agent 1 is communicating")
-        agent[3].updateComm(agent[0], time.ctime())
-        meetCounter[0] += 1
-        meetCounter[3] += 1
-
-    # Getting more values from Environment
+    # Input Preparation
+    colInput = np.zeros((INITIAL_INPUT, data_dim))
     for i in range(N_AGENTS):
-        agent[i].updateEnv(colors, ITERATION_INPUT)
-    whCounter += 1
+        idx = np.random.choice(mydata.shape[0], INITIAL_INPUT,
+                               replace=False)  # Generating a certain no. of inputs for initial input
+        colInput = mydata[idx, :]
+        agent[i].inputInit(idx, colInput)
+    '''Calling Agents to train'''
+    main_loop(MEETING_LIMIT, certainlyMeet, agent, mydata, ITERATION_INPUT)
 
-#Centralised SOM
-csom = MiniSom(xdim, ydim, data_dim, sigma=sigma, learning_rate=lrate, decay_function=fixed_decay)
-csom.train_batch(colors, len(colors), verbose=False)
+    '''Centralised SOM Creation and Training
+    '''
+
+    print("Training Central")
+    csom = MiniSom(xdim, ydim, data_dim, sigma=sigma, learning_rate=lrate, decay_function=fixed_decay)
+    centraldata = mydata
+    csom.train_batch(centraldata, len(centraldata), verbose=False)
+
+    '''Generate Test Set and Print Results
+    '''
+    testname = "D:\\spike boid data\\2\\" + files[k] + ".txt"
+    testdata = load_data(testname)
+    testdata = testdata[:, 4:14]
+
+    print("Now testing")
+    testLength = 10
+    testSamples = 20000
+    qval = np.zeros((testLength, N_AGENTS + 1))
+    for i in range(0, testLength):
+        idx = np.random.choice(testdata.shape[0], testSamples,
+                               replace=True)  # Generating a certain no. of inputs for initial input
+        testSet = testdata[idx, :]
+        qec = csom.quantization_error(testSet)
+        qval[i, 0] = qec
+        for j in range(N_AGENTS):
+            qe = agent[j].som.quantization_error(testSet)
+            qval[i, j + 1] = qe
+
+    print("Result for "+ files[k])
+    print(qval)
+    colmean = qval.mean(axis=0)
+    colmean = np.transpose(colmean)
+    print("Mean Values")
+    print(colmean)
+    ###
+    vals = np.zeros((N_AGENTS, 1))
+    commTimes = np.zeros((N_AGENTS, 1))
+    for i in range(N_AGENTS):
+        vals[i] = len(agent[i].repository)
+        commTimes[i] = len(agent[i].commHistory)
+
+    # Saving Numpy Arrays
+    np.savez(fileNames[k], name1=qval, name2=vals)
 
 
-
-#Generate Test Set
-testLength = 10
-testSamples = 200
-qval = np.zeros((testLength, N_AGENTS+1))
-for i in range(0, testLength):
-    testSet = np.random.rand(testSamples, 3)
-    qec = csom.quantization_error(testSet)
-    qval[i, 0] = qec
-    for j in range(N_AGENTS):
-        qe = agent[j].som.quantization_error(testSet)
-        qval[i,j+1] = qe
-
-
-
-print("\n \n ** ================ Results =================**")
-print(qval)
-colmean = qval.mean(axis=0)
-colmean = np.transpose(colmean)
-print("Mean Values")
-print(colmean)
-
-###
-vals = np.zeros((N_AGENTS, 1))
-commTimes = np.zeros((N_AGENTS,1))
-for i in range(N_AGENTS):
-    vals[i] = len(agent[i].repository)
-    commTimes[i] =  len(agent[i].commHistory)
-
-print(vals)
-print(commTimes)
-
-#np.savez('star8.npz', name1=qval, name2 = vals)
-
-##### Graphs ################
-
-plt.subplot(2, 4, 5)
-plt.imshow(abs(agent[0].som.get_weights()), interpolation='none')
-plt.subplot(2, 4, 6)
-plt.imshow(abs(agent[1].som.get_weights()), interpolation='none')
-plt.subplot(2, 4, 7)
-plt.imshow(abs(agent[2].som.get_weights()), interpolation='none')
-plt.subplot(2, 4, 8)
-plt.imshow(abs(agent[3].som.get_weights()), interpolation='none')
-plt.show()
 
