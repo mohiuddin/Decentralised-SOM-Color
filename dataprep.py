@@ -1,5 +1,5 @@
 import math
-from minisom import MiniSom
+import minisom
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -240,7 +240,7 @@ for k in range(4,5):
     soms = []
     agent = []
     for i in range(N_AGENTS):
-        s = MiniSom(xdim, ydim, data_dim, sigma=sigma, learning_rate=lrate, decay_function=fixed_decay)
+        s = minisom.MiniSom(xdim, ydim, data_dim, sigma=sigma, learning_rate=lrate, decay_function=fixed_decay)
         soms.append(s)
         a = SomAgent(i + 1, s)
         agent.append(a)
@@ -259,7 +259,7 @@ for k in range(4,5):
     '''
 
     print("Training Central")
-    csom = MiniSom(xdim, ydim, data_dim, sigma=sigma, learning_rate=lrate, decay_function=fixed_decay)
+    csom = minisom.MiniSom(xdim, ydim, data_dim, sigma=sigma, learning_rate=lrate, decay_function=fixed_decay)
     centraldata = mydata
     csom.train_batch(centraldata, len(centraldata), verbose=False)
 
