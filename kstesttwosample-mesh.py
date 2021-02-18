@@ -20,17 +20,28 @@ def main_loop(MEETING_LIMIT, certainlyMeet, agent, data, ITERATION_INPUT):
         # Communicate
         chancetoMeet = np.random.rand(4)
         if chancetoMeet[0] >= 0.5 or certainlyMeet:
-            print("Agent 1 and 2 are communicating")
+            print("Agent 1 is communicating with others")
             agent[0].updateComm(agent[1], time.ctime())
+            agent[0].updateComm(agent[2], time.ctime())
+            agent[0].updateComm(agent[3], time.ctime())
+
         if chancetoMeet[1] >= 0.5 or certainlyMeet:
-            print("Agent 2 and 3 are communicating")
+            print("Agent 2 is communicating with others")
+            agent[1].updateComm(agent[0], time.ctime())
             agent[1].updateComm(agent[2], time.ctime())
+            agent[1].updateComm(agent[3], time.ctime())
+
         if chancetoMeet[2] >= 0.5 or certainlyMeet:
-            print("Agent 3 and 4 are communicating")
+            print("Agent 3 is communicating with others")
+            agent[2].updateComm(agent[0], time.ctime())
+            agent[2].updateComm(agent[1], time.ctime())
             agent[2].updateComm(agent[3], time.ctime())
+
         if chancetoMeet[3] >= 0.5 or certainlyMeet:
-            print("Agent 4 and 1 are communicating")
+            print("Agent 4 is communicating with others")
             agent[3].updateComm(agent[0], time.ctime())
+            agent[3].updateComm(agent[1], time.ctime())
+            agent[3].updateComm(agent[2], time.ctime())
 
         # Getting more values from Environment
         for i in range(N_AGENTS):
@@ -119,7 +130,7 @@ mydata = np.random.rand(SAMPLES,3)*2-1
 INITIAL_INPUT = round(0.1*SAMPLES)   #10% of the total inputs
 ITERATION_INPUT = round(0.1*SAMPLES)         #10% of the total inputs
 N_AGENTS = 4
-MEETING_LIMIT = 4
+MEETING_LIMIT = 8
 PLOTTING = False
 certainlyMeet = False
 
@@ -197,7 +208,6 @@ for k in range(TRIALS):
 
     ''' For Central Now'''
     ''' First getting the initial resutls'''
-
     weights = csom.get_weights()
     res = kstest(mydata, weights)
     initcsomres[k,:] = res
@@ -236,11 +246,8 @@ print(C)
 snumbers = pd.DataFrame((np.mean(dsomsamples, axis = 0)))
 dftowrite = pd.DataFrame(C)
 
-snumbers.round(2)
-dftowritemod = dftowrite.round(3)
-
 with pd.ExcelWriter('test1.xlsx') as writer:
-    dftowritemod.to_excel(writer, sheet_name='Sh1')
+    dftowrite.to_excel(writer, sheet_name='Sh1')
     snumbers.to_excel(writer, sheet_name='Sh2')
 
 

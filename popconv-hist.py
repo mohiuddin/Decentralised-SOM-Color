@@ -128,6 +128,9 @@ def inputPrep():
         colInput = mydata[idx, :]
         agent[i].inputInit(idx, colInput)
 
+
+
+
 def trainCentral(mydata):
     csom = MiniSom(xdim, ydim, data_dim, sigma=sigma, learning_rate=lrate, decay_function=fixed_decay, neighborhood_function='bubble')
     #csom.random_weights_init(mydata)
