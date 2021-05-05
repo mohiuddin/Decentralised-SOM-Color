@@ -106,8 +106,8 @@ class SomAgent:
         return toSend
 
     def samplesToTrain(self, currInput):
-        currInputIdx = set(list(currInput.keys()))   #Get the IDs of the current input
-        #print("Length of passed input for Agent", self.ID+1, "is", len(currInputIdx))
+        currInputIdx = set(list(currInput.keys()))   #Get the IDs of the current myinput
+        #print("Length of passed myinput for Agent", self.ID+1, "is", len(currInputIdx))
 
         #This is the case when agent is training for the first time
         if self.initFlag == True:
@@ -124,8 +124,8 @@ class SomAgent:
         #print("Final Repository length for Agent", self.ID+1,"is",len(self.repository))
         #Now building a dictionary with only the new values and returning the values
         toTrainIdx = list(toTrainIdx)
-        #print("Length of returned input", len(toTrainIdx))
-        toTrainDict = {k: currInput[k] for k in toTrainIdx} #Taking only the selected entries fo the input and builda new dicitonary
+        #print("Length of returned myinput", len(toTrainIdx))
+        toTrainDict = {k: currInput[k] for k in toTrainIdx} #Taking only the selected entries fo the myinput and builda new dicitonary
 
         return np.asarray(list(toTrainDict.values()))
 
@@ -175,7 +175,7 @@ def main_loop(MEETING_LIMIT, certainlyMeet, agent, data, ITERATION_INPUT):
                 print("Agent", i + 1, "Training SOM with", l, "samples")
                 agent[i].som.train_batch(agentInputToTrain, len(agentInputToTrain), verbose=False)
             else:
-                print("No new input for Agent", i)
+                print("No new myinput for Agent", i)
 
         # Communicate
         chancetoMeet = np.random.rand(4)
@@ -249,7 +249,7 @@ for k in range(4,5):
     colInput = np.zeros((INITIAL_INPUT, data_dim))
     for i in range(N_AGENTS):
         idx = np.random.choice(mydata.shape[0], INITIAL_INPUT,
-                               replace=False)  # Generating a certain no. of inputs for initial input
+                               replace=False)  # Generating a certain no. of inputs for initial myinput
         colInput = mydata[idx, :]
         agent[i].inputInit(idx, colInput)
     '''Calling Agents to train'''
@@ -275,7 +275,7 @@ for k in range(4,5):
     qval = np.zeros((testLength, N_AGENTS + 1))
     for i in range(0, testLength):
         idx = np.random.choice(testdata.shape[0], testSamples,
-                               replace=True)  # Generating a certain no. of inputs for initial input
+                               replace=True)  # Generating a certain no. of inputs for initial myinput
         testSet = testdata[idx, :]
         qec = csom.quantization_error(testSet)
         qval[i, 0] = qec

@@ -49,7 +49,7 @@ def main_loop(MEETING_LIMIT, certainlyMeet, agent, data, ITERATION_INPUT):
                 print("Agent", i + 1, "Training SOM with", l, "samples")
                 agent[i].som.train_batch(agentInputToTrain, len(agentInputToTrain), verbose=False)
             else:
-                print("No new input for Agent", i)
+                print("No new myinput for Agent", i)
 
         whCounter += 1
 
@@ -124,7 +124,7 @@ def createAgents(mydata):
 def inputPrep():
     np.random.shuffle(mydata)
     for i in range(N_AGENTS):
-        idx = np.random.choice(mydata.shape[0], INITIAL_INPUT, replace=False)  # Generating a certain no. of inputs for initial input
+        idx = np.random.choice(mydata.shape[0], INITIAL_INPUT, replace=False)  # Generating a certain no. of inputs for initial myinput
         colInput = mydata[idx, :]
         agent[i].inputInit(idx, colInput)
 

@@ -109,8 +109,8 @@ class SomAgent:
         return toSend
 
     def samplesToTrain(self, currInput):
-        currInputIdx = set(list(currInput.keys()))   #Get the IDs of the current input
-        #print("Length of passed input for Agent", self.ID+1, "is", len(currInputIdx))
+        currInputIdx = set(list(currInput.keys()))   #Get the IDs of the current myinput
+        #print("Length of passed myinput for Agent", self.ID+1, "is", len(currInputIdx))
 
         #This is the case when agent is training for the first time
         if self.initFlag == True:
@@ -127,8 +127,8 @@ class SomAgent:
         #print("Final Repository length for Agent", self.ID+1,"is",len(self.repository))
         #Now building a dictionary with only the new values and returning the values
         toTrainIdx = list(toTrainIdx)
-        #print("Length of returned input", len(toTrainIdx))
-        toTrainDict = {k: currInput[k] for k in toTrainIdx} #Taking only the selected entries fo the input and builda new dicitonary
+        #print("Length of returned myinput", len(toTrainIdx))
+        toTrainDict = {k: currInput[k] for k in toTrainIdx} #Taking only the selected entries fo the myinput and builda new dicitonary
 
         return np.asarray(list(toTrainDict.values()))
 
@@ -168,7 +168,7 @@ PLOTTING = False
 
 meetCounter = [0]*N_AGENTS        # Counting the Meetings  (1,2) (2,3) (3,4) (4,1)
 certainlyMeet = False                  # True if agents are guaranteed to meet at each iteration
-inputPortion = 0.1                     # The percentage of existing input that is shared between agents when in contact
+inputPortion = 0.1                     # The percentage of existing myinput that is shared between agents when in contact
 
 # SOM parameters
 neurons = 5 * math.sqrt(SAMPLES)       # Using the heuristics: N = 5*sqrt(M)
@@ -196,9 +196,9 @@ for i in range(N_AGENTS):
 # Creating Randomized Input Subsets for Initialisation of the scheme
 colInput = np.zeros((INITIAL_INPUT, data_dim))
 for i in range(N_AGENTS):
-    idx = np.random.choice(colors.shape[0], INITIAL_INPUT, replace=False)   #Generating a certain no. of inputs for initial input
+    idx = np.random.choice(colors.shape[0], INITIAL_INPUT, replace=False)   #Generating a certain no. of inputs for initial myinput
     colInput = colors[idx,:]
-    agent[i].inputInit(idx, colInput)   # This is the initial input
+    agent[i].inputInit(idx, colInput)   # This is the initial myinput
 
 #Initial Plot
 
@@ -229,7 +229,7 @@ while (whCounter < MEETING_LIMIT):
             print("Agent",i+1,"Training SOM with", l, "samples")
             agent[i].som.train_batch(agentInputToTrain, len(agentInputToTrain), verbose=False)
         else:
-            print("No new input for Agent", i)
+            print("No new myinput for Agent", i)
 
     #Communicate in a Star Topology
 

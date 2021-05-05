@@ -26,7 +26,7 @@ class SomAgent:
         self.inputCount += 1
 
 
-    def updateComm(self, other , tstamp):
+    def updateComm(self, other, verbose=True):
         """They will pass with another only a random percentage of the data they have
         The textual history will also be updated"""
         #Check length
@@ -51,10 +51,12 @@ class SomAgent:
         # Updating the textual history of the communication
         updated = "\tAgent "+ str(self.ID) + " received " + str(items_o) + " items from Agent " + str(other.ID)
         self.commHistory.append(updated)
-        print(updated)
+        if(verbose):
+            print(updated)
         updated = "\tAgent " + str(other.ID)+ " received " + str(items_s) + " items from Agent " + str(self.ID)
         other.commHistory.append(updated)
-        print(updated)
+        if(verbose):
+            print(updated)
 
     def updateEnv (self, linedata, ITERATION_INPUT):
         items = int(random.uniform(0.8, 1)*ITERATION_INPUT)
@@ -102,8 +104,8 @@ class SomAgent:
         return toSend
 
     def samplesToTrain(self, currInput):
-        currInputIdx = set(list(currInput.keys()))   #Get the IDs of the current input
-        #print("Length of passed input for Agent", self.ID+1, "is", len(currInputIdx))
+        currInputIdx = set(list(currInput.keys()))   #Get the IDs of the current myinput
+        #print("Length of passed myinput for Agent", self.ID+1, "is", len(currInputIdx))
 
         #This is the case when agent is training for the first time
         if self.initFlag == True:
@@ -120,6 +122,6 @@ class SomAgent:
         #print("Final Repository length for Agent", self.ID+1,"is",len(self.repository))
         #Now building a dictionary with only the new values and returning the values
         toTrainIdx = list(toTrainIdx)
-        #print("Length of returned input", len(toTrainIdx))
-        toTrainDict = {k: currInput[k] for k in toTrainIdx} #Taking only the selected entries fo the input and builda new dicitonary
+        #print("Length of returned myinput", len(toTrainIdx))
+        toTrainDict = {k: currInput[k] for k in toTrainIdx} #Taking only the selected entries fo the myinput and builda new dicitonary
         return np.asarray(list(toTrainDict.values()))

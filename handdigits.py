@@ -9,6 +9,7 @@ import itertools
 from sklearn.preprocessing import StandardScaler
 from sklearn import datasets
 from sklearn.preprocessing import scale
+import plotly.graph_objects as go
 
 def fixed_decay(learning_rate, t, max_iter):
     """This is a fixed decay custom fuction added by Rafi
@@ -84,7 +85,7 @@ def dsom_loop(meetlimit, agent, data, itrinput, topo='ring'):
             l = len(agentInputToTrain)
             if (l > 0):
                 print("Agent", i + 1, "Training SOM with", l, "samples")
-                agent[i].som.train_batch(agentInputToTrain, len(agentInputToTrain), verbose=True)
+                agent[i].som.train_batch(agentInputToTrain, 10*len(agentInputToTrain), verbose=True)
             else:
                 print("No new myinput for Agent", i)
 
@@ -162,11 +163,48 @@ def initCentral(xdim, ydim, data_dim, sigma, lrate):
     return csom
 
 def trainCentral(csom, mydata):
-    csom.train_batch(mydata, len(mydata), verbose=True)
+    csom.train_batch(mydata, 10*len(mydata), verbose=True)
     return csom
 
-def makePlot():
-    pass
+def makePlot(som, agent, data, num):
+    # plt.figure(figsize=(8, 8))
+    # wmap = {}
+    # im = 0
+    # for x, t in zip(data, num):  # scatterplot
+    #     w = csom.winner(x)
+    #     wmap[w] = im
+    #     plt.text(w[0] + .5, w[1] + .5, str(t),
+    #              color=plt.cm.rainbow(t / 10.), fontdict={'weight': 'bold', 'size': 11})
+    #     im = im + 1
+    # plt.axis([0, csom.get_weights().shape[0], 0, csom.get_weights().shape[1]])
+    # #plt.savefig('resulting_images/som_digts.png')
+    # plt.show()
+
+
+    '''Now plotting one dsom'''
+    dsom1 = som
+    plt.figure(figsize=(8, 8))
+    for x, t in zip(data, num):  # scatterplot
+        w = dsom1.winner(x)
+        plt.text(w[0] + .5, w[1] + .5, str(t),
+                 color=plt.cm.rainbow(t / 10.), fontdict={'weight': 'bold', 'size': 11})
+
+    plt.axis([0, dsom1.get_weights().shape[0], 0, dsom1.get_weights().shape[1]])
+    # plt.savefig('resulting_images/som_digts.png')
+    plt.show()
+
+    # win_map = dsom1.win_map(data)
+    # size = dsom1.distance_map().shape[0]
+    # qualities = np.empty((size, size))
+    # qualities[:] = np.NaN
+    # for position, values in win_map.items():
+    #     qualities[position[0], position[1]] = np.mean(abs(values - dsom1.get_weights()[position[0], position[1]]))
+    #
+    # layout = go.Layout(title='quality plot')
+    # fig = go.Figure(layout=layout)
+    # fig.add_trace(go.Heatmap(z=qualities, colorscale='Viridis'))
+    # fig.show()
+
 
 def dataInit():
     pass
@@ -175,36 +213,11 @@ def main():
     '''
     Data Preparation
     '''
-
     digits = datasets.load_digits(n_class=10)
     data = digits.data  # matrix where each row is a vector that represent a digit.
     mydata = scale(data)
     num = digits.target  # num[i] is the digit represented by data[i]
     SAMPLES = len(mydata)
-
-    # datapath = "C:\\Users\\Rafi\\Downloads\\data_dim_txt\\dim9.txt"
-    # df = pd.read_csv(datapath, delim_whitespace=True)
-    # mydata = df.to_numpy()
-    # #mydata = mydata[:,1:4]
-    # mydata = scale(mydata)
-    # #print(mydata[1:10,:])
-    # SAMPLES = len(mydata)
-
-    #
-    # datapath = "C:\\Users\\Rafi\\Downloads\\data-05-00013-s001\\Country-data.csv"
-    # df2 = pd.read_csv(datapath)
-    # print(df2.head(5))
-    # df2 = df2.drop(['country'], axis=1)
-    # scaling = StandardScaler()
-    # scaled=scaling.fit_transform(df2)
-    # scaled=pd.DataFrame(scaled, columns=df2.columns)
-    # mydata = scaled.to_numpy()
-    # SAMPLES = len(mydata)
-
-
-    '''Colors Override'''
-    #SAMPLES = 1600
-    #mydata = np.random.rand(SAMPLES,3)*2-1
 
     ''' Magic Numbers :  Agent Related Settings'''
     toplgy = 'ring'
@@ -215,8 +228,8 @@ def main():
     plotting = False
     ''' More Magic Numbers - SOM Parameters'''
     neurons = 5 * math.sqrt(SAMPLES)            # Using the heuristics: N = 5*sqrt(M)
-    xdim = round(math.sqrt(neurons))+1
-    ydim = round(neurons / xdim)+1
+    #xdim = round(math.sqrt(neurons))+1
+    #ydim = round(neurons / xdim)+1
     sigma = 4
     lrate = 0.25
     data_dim = mydata.shape[1]
@@ -226,10 +239,12 @@ def main():
     totcolumns = data_dim                                        #SOMS X no. of data dimensions
     dsomstats = np.zeros((TRIALS, totcolumns+1, N_AGENTS))       #One extra column for sample numbers
     cenvsdsom = np.zeros((TRIALS, totcolumns, N_AGENTS))         #This is for comparing dsom and central weights
-    qEVals = np.zeros((TRIALS,N_AGENTS+1))        #For storing QE values
+    qEVals = np.zeros((TRIALS, N_AGENTS + 1))
 
     #For trackign initial ks scores, before training
     csomstats = np.zeros((TRIALS, totcolumns))
+    xdim = 30
+    ydim = 30
 
     for k in range(TRIALS):
 
@@ -245,8 +260,7 @@ def main():
         cweights = csom.get_weights()
         res = kstest(mydata, cweights)
         csomstats[k, :] = res
-        qEVals[k,0] = csom.quantization_error(mydata)
-
+        qEVals[k, 0] = csom.quantization_error(mydata)
         '''For the DSOMs '''
         agent = createAgents(N_AGENTS, xdim, ydim, data_dim, sigma, lrate)
         agent = inputPrep(agent, mydata, INITIAL_INPUT)
@@ -259,7 +273,7 @@ def main():
             res = kstest(mydata, dweights)
             dsomstats[k,range(data_dim),i] = res
             dsomstats[k,data_dim+1-1,i] = len(inpDic)
-            qEVals[k,i+1] = agent[i].som.quantization_error(mydata)
+            qEVals[k, i + 1] = agent[i].som.quantization_error(mydata)
 
             '''Now comapring denctralised vs centralised weights'''
             res = kstestweights(cweights, dweights)
@@ -270,8 +284,6 @@ def main():
     s1d = np.atleast_1d(SAMPLES)
     a = (np.mean(csomstats, axis=0))
     a = np.concatenate([a,s1d])
-
-
 
     ''' Doing the mean for the DSOMs'''
     dsomresults = np.zeros((N_AGENTS, totcolumns+1))
@@ -288,6 +300,10 @@ def main():
     print("==================")
     #print(cenvsdsomresults)
 
+    '''Processing QE Values'''
+    qEres = np.mean(qEVals, axis=0)
+    print(qEres)
+
     df1 = pd.DataFrame(dsomresults)
     df2 = pd.DataFrame(cenvsdsomresults)
 
@@ -299,9 +315,10 @@ def main():
         df2.to_excel(writer, sheet_name='Sh2')
 
     if(plotting):
-        makePlot()
+        makePlot(csom, agent, mydata, num)
 if __name__ == "__main__":
     main()
+
 
 
 

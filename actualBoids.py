@@ -175,52 +175,31 @@ def main():
     '''
     Data Preparation
     '''
-
-    digits = datasets.load_digits(n_class=10)
-    data = digits.data  # matrix where each row is a vector that represent a digit.
-    mydata = scale(data)
-    num = digits.target  # num[i] is the digit represented by data[i]
+    datapath = "D:\\spike boid data\\1\\initial.txt"
+    df2 = pd.read_csv(datapath, header=None)
+    print(df2.head(10))
+    mydata = df2.to_numpy()
+    T = 1 #Number of time steps sampled from the dataset, out of 1500
+    Ts = T*200
+    mydata = mydata[0:Ts,0:6]
+    print(mydata)
     SAMPLES = len(mydata)
-
-    # datapath = "C:\\Users\\Rafi\\Downloads\\data_dim_txt\\dim9.txt"
-    # df = pd.read_csv(datapath, delim_whitespace=True)
-    # mydata = df.to_numpy()
-    # #mydata = mydata[:,1:4]
-    # mydata = scale(mydata)
-    # #print(mydata[1:10,:])
-    # SAMPLES = len(mydata)
-
-    #
-    # datapath = "C:\\Users\\Rafi\\Downloads\\data-05-00013-s001\\Country-data.csv"
-    # df2 = pd.read_csv(datapath)
-    # print(df2.head(5))
-    # df2 = df2.drop(['country'], axis=1)
-    # scaling = StandardScaler()
-    # scaled=scaling.fit_transform(df2)
-    # scaled=pd.DataFrame(scaled, columns=df2.columns)
-    # mydata = scaled.to_numpy()
-    # SAMPLES = len(mydata)
-
-
-    '''Colors Override'''
-    #SAMPLES = 1600
-    #mydata = np.random.rand(SAMPLES,3)*2-1
 
     ''' Magic Numbers :  Agent Related Settings'''
     toplgy = 'ring'
     INITIAL_INPUT = round(0.1*SAMPLES)           #10% of the total inputs
     ITERATION_INPUT = round(0.1*SAMPLES)         #5% of the total inputs
-    N_AGENTS = 4
+    N_AGENTS = 200
     MEETING_LIMIT = 4
     plotting = False
     ''' More Magic Numbers - SOM Parameters'''
     neurons = 5 * math.sqrt(SAMPLES)            # Using the heuristics: N = 5*sqrt(M)
     xdim = round(math.sqrt(neurons))+1
     ydim = round(neurons / xdim)+1
-    sigma = 4
+    sigma = 1
     lrate = 0.25
     data_dim = mydata.shape[1]
-    TRIALS = 10
+    TRIALS = 1
 
     ''' Result Array'''
     totcolumns = data_dim                                        #SOMS X no. of data dimensions

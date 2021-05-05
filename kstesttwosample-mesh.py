@@ -59,12 +59,12 @@ def main_loop(MEETING_LIMIT, certainlyMeet, agent, data, ITERATION_INPUT):
                 print("Agent", i + 1, "Training SOM with", l, "samples")
                 agent[i].som.train_batch(agentInputToTrain, len(agentInputToTrain), verbose=False)
             else:
-                print("No new input for Agent", i)
+                print("No new myinput for Agent", i)
 
         whCounter += 1
 
 def kstest(input, weights):
-    '''Takes as input two numpy arrays
+    '''Takes as myinput two numpy arrays
     Right now works for only 3 dimensional data
     Returns an array with the three p-values for the three features'''
     sh = weights.shape
@@ -97,7 +97,7 @@ def createAgents(mydata):
 
 def inputPrep():
     for i in range(N_AGENTS):
-        idx = np.random.choice(mydata.shape[0], INITIAL_INPUT, replace=False)  # Generating a certain no. of inputs for initial input
+        idx = np.random.choice(mydata.shape[0], INITIAL_INPUT, replace=False)  # Generating a certain no. of inputs for initial myinput
         inputIdx = mydata[idx, :]
         agent[i].inputInit(idx, inputIdx)
 
