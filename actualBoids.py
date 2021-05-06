@@ -175,7 +175,7 @@ def main():
     '''
     Data Preparation
     '''
-    datapath = "D:\\spike boid data\\1\\initial.txt"
+    datapath = "C:\\spike\\1\\initial.txt"
     df2 = pd.read_csv(datapath, header=None)
     print(df2.head(10))
     mydata = df2.to_numpy()
