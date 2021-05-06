@@ -10,10 +10,12 @@ from sklearn.preprocessing import StandardScaler
 from sklearn import datasets
 from sklearn.preprocessing import scale
 
+
 def fixed_decay(learning_rate, t, max_iter):
     """This is a fixed decay custom fuction added by Rafi
     """
     return learning_rate
+
 
 def ring_topology(agent):
     N = len(agent)
@@ -30,6 +32,7 @@ def ring_topology(agent):
                 agent[i].updateComm(agent[i+1])
     return agent
 
+
 def star_topology(agent):
     N =  len(agent)
     chancetoMeet = np.random.rand(N)
@@ -40,6 +43,7 @@ def star_topology(agent):
             agent[0].updateComm(agent[i])
 
     return agent
+
 
 def mesh_topology(agent):
     N = len(agent)
@@ -55,6 +59,7 @@ def mesh_topology(agent):
             agent[a].updateComm(agent[b])
 
     return agent
+
 
 def dsom_loop(meetlimit, agent, data, itrinput, topo='ring'):
 
