@@ -6,6 +6,10 @@ import matplotlib.pyplot as plt
 import scipy.stats as st
 import pandas as pd
 import itertools
+import networkx as nx
+import pickle
+from datetime import datetime
+import collections
 from sklearn.preprocessing import StandardScaler
 from sklearn import datasets
 from sklearn.preprocessing import scale
@@ -78,8 +82,7 @@ def dsom_loop(meetlimit, agent, data, itrinput, topo='ring'):
         for i in range(nagents):
             agentInput = agent[i].getLastInputs()  # Getting unique values from all the recently acquired inputs
             # print(len(agentInput))
-            agentInputToTrain = agent[i].samplesToTrain(
-                agentInput)  # Getting the samples that have not been seen by the SOM
+            agentInputToTrain = agent[i].samplesToTrain(agentInput)  # Getting the samples that have not been seen by the SOM
             # print(len(agentInputToTrain))
             l = len(agentInputToTrain)
             if (l > 0):
@@ -146,13 +149,21 @@ def inputPrep(agent, mydata, INITIAL_INPUT):
         agent[i].inputInit(idx, inputIdx)
     return agent
 
+def boidInputPrep(agent, mydata):
+    l = len(agent)
+    for i in range(l):
+        j = np.array([i])
+        agent[i].boidInputInit(j,mydata[j,1:])
+    return agent
+
+
 def createAgents(N_AGENTS, xdim,ydim, data_dim, sigma, lrate):
     soms = []
     agent = []
     for i in range(N_AGENTS):
         s = MiniSom(xdim, ydim, data_dim, sigma=sigma, learning_rate=lrate, decay_function=fixed_decay, neighborhood_function='bubble')
         soms.append(s)
-        a = SomAgent(i + 1, s)
+        a = SomAgent(i, s)
         agent.append(a)
     return agent
 
@@ -171,19 +182,108 @@ def makePlot():
 def dataInit():
     pass
 
+
+def toGraph(posdata, RADIUS):
+    graphDict = {}
+    chunks = np.array_split(posdata,1500)
+    print(len(chunks))
+
+    for i in range(0, len(chunks)):
+        #print(i)
+        thischunk = chunks[i]
+        dist = np.abs(thischunk[np.newaxis, :, :] - thischunk[:, np.newaxis, :]).min(axis=2)
+        adjMat = dist < RADIUS
+        np.fill_diagonal(adjMat, 0)
+        adjMat = adjMat.astype(int)
+        #print(adjMat)
+        G = nx.from_numpy_matrix(adjMat)
+        graphDict[i] = nx.to_dict_of_lists(G)
+
+    return graphDict
+
+
+def boid_dsom_loop(agent, mydata, gDict):
+
+    nagents = len(agent)
+    start = 1
+    end = 1500
+    chunks = np.array_split(mydata, 1500)
+
+    for t in range(start,end):
+
+        #if agent is in neighbourhood, communicate
+        print("Now starting timestep: ", t)
+
+        adj = gDict[t]
+        for i in range(nagents):
+            neighlist = adj[i]                  #This is now a list
+            for j in neighlist:
+                #if j >= nagents:                 #Temporary, for debugging
+                #    continue
+                #else:
+                    agent[i].boidUpdateComm(agent[j])
+
+        for i in range(nagents):
+            agent[i].boidUpdateEnv(chunks[t])
+
+        for i in range(nagents):
+            agentInput = agent[i].getLastInputs()  # Getting unique values from all the recently acquired inputs
+            # print(len(agentInput))
+            agentInputToTrain = agent[i].samplesToTrain(agentInput)  # Getting the samples that have not been seen by the SOM
+            #agentInputToTrain = agentInputToTrain[:, 1:]             # Extra step to get rid of the first column
+            #print(agentInputToTrain)
+            l = len(agentInputToTrain)
+            if (l > 0):
+                print("Agent", i, "Training SOM with", l, "samples")
+                agent[i].som.train_batch(agentInputToTrain, len(agentInputToTrain), verbose=True)
+            else:
+                print("No new myinput for Agent", i)
+
+
+    return agent
+
 def main():
     '''
     Data Preparation
     '''
-    datapath = "D:\\spike boid data\\1\\initial.txt"
-    df2 = pd.read_csv(datapath, header=None)
-    print(df2.head(10))
-    mydata = df2.to_numpy()
-    T = 1 #Number of time steps sampled from the dataset, out of 1500
-    Ts = T*200
-    mydata = mydata[0:Ts,0:6]
-    print(mydata)
+    datapath = "C:\\spike\\1\\initial.txt"
+    RADIUS = 100
+    df = pd.read_csv(datapath, header=None)
+    df.drop(df.columns[[0, 1, 6, 7, 8, 9, 10, 11, 12, 13]], axis=1, inplace=True)
+    df2 = df.iloc[0:300000, :]
+    newcol = np.arange(300000).transpose()
+    df2.insert(0,0,newcol)
+
+
+    mydatafile = df2.to_numpy()
+    del df, df2
+
+    posdata = mydatafile[:,1:3]         #Taking only position values
+    #pri1nt(posdata[0:10])
+    mydata = mydatafile[:,[0,3,4]]      #Taking the index and velocity columns
+    #print(mydata[0:10])
     SAMPLES = len(mydata)
+
+
+    print("Generating Adjacency list") #Takes about 30 seconds to do it
+    graphDic = toGraph(posdata,RADIUS)
+    print("Adjacency list generation complete!")
+
+
+    # degree_sequence = sorted([d for n, d in G.degree()], reverse=True)  # degree sequence
+    # degreeCount = collections.Counter(degree_sequence)
+    # deg, cnt = zip(*degreeCount.items())
+    # fig, ax = plt.subplots()
+    # plt.bar(deg, cnt, color="b")
+    # plt.title("Degree Histogram")
+    # plt.ylabel("Count")
+    # plt.xlabel("Degree")
+    # ax.set_xticks([d for d in deg])
+    # ax.set_xticklabels(deg)
+    # #ax.set_xticks(ax.get_xticks()[::3])
+    # #plt.tick_params(axis='x', which='major', labelsize=6)
+    # plt.show()
+
 
     ''' Magic Numbers :  Agent Related Settings'''
     toplgy = 'ring'
@@ -199,16 +299,26 @@ def main():
     sigma = 1
     lrate = 0.25
     data_dim = mydata.shape[1]
+    boid_data_dim = data_dim-1                  #Because boid data has a unique ID as part of data
     TRIALS = 1
 
     ''' Result Array'''
-    totcolumns = data_dim                                        #SOMS X no. of data dimensions
+    totcolumns = boid_data_dim                                        #SOMS X no. of data dimensions
     dsomstats = np.zeros((TRIALS, totcolumns+1, N_AGENTS))       #One extra column for sample numbers
     cenvsdsom = np.zeros((TRIALS, totcolumns, N_AGENTS))         #This is for comparing dsom and central weights
-    qEVals = np.zeros((TRIALS,N_AGENTS+1))        #For storing QE values
-
-    #For trackign initial ks scores, before training
+    qEVals = np.zeros((TRIALS,N_AGENTS+1))                       #For storing QE values
+    # For trackign initial ks scores, before training
     csomstats = np.zeros((TRIALS, totcolumns))
+
+
+    #agent = createAgents(N_AGENTS, xdim, ydim, boid_data_dim, sigma, lrate)
+    #agent = boidInputPrep(agent, mydata)
+    #agent = boid_dsom_loop(agent,mydata,graphDic)
+
+
+
+    #
+    #     agent = dsom_loop(MEETING_LIMIT, agent, mydata, ITERATION_INPUT, toplgy)
 
     for k in range(TRIALS):
 
@@ -219,66 +329,51 @@ def main():
         # initcsomstats[k, :] = res
 
         ''' Now training the centralised som and getting the results'''
-        csom = initCentral(xdim, ydim, data_dim, sigma, lrate)
-        csom = trainCentral(csom, mydata)
+        csom = initCentral(xdim, ydim, boid_data_dim, sigma, lrate)
+        csom = trainCentral(csom, mydata[:,1:])
         cweights = csom.get_weights()
-        res = kstest(mydata, cweights)
-        csomstats[k, :] = res
-        qEVals[k,0] = csom.quantization_error(mydata)
+        #res = kstest(mydata[:,1:], cweights)
+        #csomstats[k, :] = res
+        qEVals[k, 0] = csom.quantization_error(mydata[:,1:])
 
         '''For the DSOMs '''
-        agent = createAgents(N_AGENTS, xdim, ydim, data_dim, sigma, lrate)
-        agent = inputPrep(agent, mydata, INITIAL_INPUT)
-        agent = dsom_loop(MEETING_LIMIT, agent, mydata, ITERATION_INPUT,toplgy)
-
+        agent = createAgents(N_AGENTS, xdim, ydim, boid_data_dim, sigma, lrate)
+        agent = boidInputPrep(agent, mydata)
+        agent = boid_dsom_loop(agent, mydata, graphDic)
         # Getting final ks values
         for i in range(N_AGENTS):
             inpDic = agent[i].inpDic
-            dweights = agent[i].som.get_weights()
-            res = kstest(mydata, dweights)
-            dsomstats[k,range(data_dim),i] = res
-            dsomstats[k,data_dim+1-1,i] = len(inpDic)
-            qEVals[k,i+1] = agent[i].som.quantization_error(mydata)
+            #dweights = agent[i].som.get_weights()
+            #res = kstest(mydata[:,1:], dweights)
+            #dsomstats[k, range(boid_data_dim), i] = res
+            dsomstats[k, boid_data_dim + 1 - 1, i] = len(inpDic)
+            qEVals[k, i + 1] = agent[i].som.quantization_error(mydata[:,1:])
 
             '''Now comapring denctralised vs centralised weights'''
-            res = kstestweights(cweights, dweights)
-            cenvsdsom[k, range(data_dim),i] = res
+            #res = kstestweights(cweights, dweights)
+            #cenvsdsom[k, range(boid_data_dim), i] = res
+
+        myfile = open('myagents.obj','wb')
+        pickle.dump(agent,myfile)
+        myfile2 = open('central.obj', 'wb')
+        pickle.dump(csom,myfile2)
+
 
     print("==============** Results ** =========================\n")
+    qEres = np.mean(qEVals, axis=0)
+    print(qEres)
 
-    s1d = np.atleast_1d(SAMPLES)
-    a = (np.mean(csomstats, axis=0))
-    a = np.concatenate([a,s1d])
-
-
-
-    ''' Doing the mean for the DSOMs'''
-    dsomresults = np.zeros((N_AGENTS, totcolumns+1))
-    cenvsdsomresults = np.zeros((N_AGENTS, totcolumns))
-    for i in range(N_AGENTS):
-        temp = np.mean(dsomstats[:,:,i], axis=0)
-        dsomresults[i,:] = temp
-
-        temp2 = np.mean(cenvsdsom[:,:,i], axis=0)
-        cenvsdsomresults[i,:] = temp2
-
-    dsomresults = np.row_stack([a, dsomresults])
-    #print(dsomresults)
-    print("==================")
-    #print(cenvsdsomresults)
-
-    df1 = pd.DataFrame(dsomresults)
-    df2 = pd.DataFrame(cenvsdsomresults)
-
+    df1 = pd.DataFrame(qEVals)
+    df2 = pd.DataFrame(dsomstats)
     df1 = df1.round(3)
     df2 = df2.round(3)
+
 
     with pd.ExcelWriter('test1.xlsx') as writer:
         df1.to_excel(writer, sheet_name='Sh1')
         df2.to_excel(writer, sheet_name='Sh2')
 
-    if(plotting):
-        makePlot()
+
 if __name__ == "__main__":
     main()
 
